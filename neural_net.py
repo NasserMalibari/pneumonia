@@ -82,8 +82,8 @@ def test_accuracy(model, data):
     with torch.no_grad():
         for elem in data:
             images, labels = elem
-            images = Variable(torch.tensor(images).float().to(device))
-            labels = Variable(torch.tensor(labels).to(device))
+            images = Variable(torch.tensor([images]).float().to(device))
+            labels = Variable(torch.tensor([labels]).to(device))
             outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
@@ -92,11 +92,11 @@ def test_accuracy(model, data):
     return 100 * correct / total
 
 def train(epochs):
-    data = load_train_data()   # TODO. TODO: Since we're working with labels we may not need x_train, ... etc?
+    data = list(load_train_data())   # TODO. TODO: Since we're working with labels we may not need x_train, ... etc?
     model = Network()
 
-    print(len(list(data)))
-    print(data)
+    # Sanity check for data format
+    print(list(data)[50])
 
     # TODO: Class weights since we have unbalanced dataset
     loss_fn = nn.CrossEntropyLoss()
@@ -113,17 +113,17 @@ def train(epochs):
     for epoch in range(epochs):
         print(f"Epoch: {epoch}")
         # data is list [(inputs, labels)]
-        for i, (images, labels) in enumerate(data, 0):
-            print(f"image: {images}\nlabels: {labels}") # Debug
+        for i, (images, labels) in enumerate(data):
+            #print(i)
+            #print(f"image: {images}\nlabels: {labels}") # Debug
             # First we require the data to be stored in a tensor
             # .to(device) then ensures the tensor is stored on the correct device
             # i.e. CPU or CUDA
             # Variable provides a wrapper to represent a tensor as a node in a graph
             # We add images to a list of length 1 since conv2d requires more than 2 dimensions
             # TODO: We can use this to process multiple images in batches i.e. [image, image]
-            '''
-            images = Variable(torch.tensor(images).float().to(device))
-            labels = Variable(torch.tensor(labels).to(device))
+            images = Variable(torch.tensor([images]).float().to(device))
+            labels = Variable(torch.tensor([labels]).to(device ))
 
             # Make predictions then take a step
             optimizer.zero_grad()
@@ -133,18 +133,16 @@ def train(epochs):
             loss.backward()
             optimizer.step()
 
-            print(i)
-            if i % 99 == 0:
+            if i % 10 == 0:
                 print(f"Iteration {i} has accuracy: {test_accuracy(model, data)}")
         
             # Since a step may worsen accuracy our final step may not be the best
             # So we save the model that gave us the best result and use that as our
             # model
-            accuracy = test_accuracy(model, load_test_data)
+            accuracy = test_accuracy(model, list(load_test_data()))
             if accuracy > best_accuracy:
                 save_model(model)
                 best_accuracy = accuracy
-            '''
     
     # TODO: Load best model and return it
     return model
