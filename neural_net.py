@@ -96,6 +96,7 @@ def train(epochs):
     model = Network()
 
     print(len(list(data)))
+    print(data)
 
     # TODO: Class weights since we have unbalanced dataset
     loss_fn = nn.CrossEntropyLoss()
