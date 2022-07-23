@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from torch.optim import Adam        # TODO: Examine effects of different optim algos
 from torch.autograd import Variable
 
+from sklearn.metrics import f1_score
+
 from pre_nn import load_data
 from pre2 import load_test_data, load_train_data
 
@@ -47,7 +49,7 @@ class Network(nn.Module):
         # Fully connected layers
         self.fc1 = nn.Linear(12544, 120)    # 5x5 from image dimension
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)    # TODO: Is 10 the number of possible output labels?
+        self.fc3 = nn.Linear(84, 2)    # TODO: Is 2 the number of possible output labels?
 
     # Another interesting exercise could be to try other activation functions besides RELU
     def forward(self, x):
@@ -74,25 +76,25 @@ def load_model():
 
 # TODO: Change to f1 score
 def test_accuracy(model, data):
-    # TODO: If we're checking against test data we have to apply any preprocessing?
-    # This could be done in get data
-    correct = 0
-    total = 0
+    outputs = []
+    _, y = zip(*data)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    #device = "cpu"
     with torch.no_grad():
         for elem in data:
             images, labels = elem
             images = Variable(torch.tensor([images]).float().to(device))
-            labels = Variable(torch.tensor([labels]).to(device))
-            outputs = model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
+            labels = Variable(torch.tensor([labels]).to("cpu"))
+            output = model(images)
+            _, predicted = torch.max(output.data, 1)
+            outputs.append(predicted.to("cpu").numpy())
 
-    return 100 * correct / total
+    # Sklearn requires tensors to be on the cpu.
+    return f1_score(outputs, list(y))
 
 def train(epochs):
     data = list(load_train_data())   # TODO. TODO: Since we're working with labels we may not need x_train, ... etc?
+    data_test = list(load_test_data())
     model = Network()
 
     # Sanity check for data format
@@ -107,6 +109,7 @@ def train(epochs):
     # If possible we would like to use the GPU
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"model is training using: {device}")
+    #device = "cpu"
     # Ensures the model is being trained on correct device. i.e. CPU or CUDA
     model.to(device)
 
@@ -133,21 +136,41 @@ def train(epochs):
             loss.backward()
             optimizer.step()
 
-            if i % 10 == 0:
-                print(f"Iteration {i} has accuracy: {test_accuracy(model, data)}")
+            #if i % 10 == 0:
+                #print(f"Iteration {i} has accuracy: {test_accuracy(model, data)}")
         
             # Since a step may worsen accuracy our final step may not be the best
             # So we save the model that gave us the best result and use that as our
             # model
             accuracy = test_accuracy(model, list(load_test_data()))
+            print(f"f1 score at iteration {i}: {accuracy}")
             if accuracy > best_accuracy:
                 save_model(model)
                 best_accuracy = accuracy
+
+            # Just for debugging purposes. Allows us to evaluate time complexity without doing the whole database
+            if i == 500:
+                # Currently 350560.4375ms (GPU)
+                # 308009.09375ms (CPU)
+                break
     
     # TODO: Load best model and return it
+    print(f"Training complete with f1 score: {accuracy}")
     return model
 
 if __name__ == "__main__":
-    model = train(5)
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
 
+    start.record()
+
+    model = train(1)
+
+    end.record()
+
+# Waits for everything to finish running
+    torch.cuda.synchronize()
+
+    print('Finished Training')
+    print(start.elapsed_time(end))  # milliseconds
     # Then we test?
