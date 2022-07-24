@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 from torch.optim import Adam        # TODO: Examine effects of different optim algos
 from torch.autograd import Variable
@@ -99,8 +100,14 @@ def train(epochs):
 
     # Sanity check for data format
     print(list(data)[50])
+    print(list(data)[50][0].shape)
 
-    # TODO: Class weights since we have unbalanced dataset
+    # TODO: Class weights since we have unbalanced dataset?
+    # TODO: Higher learning rates could allow our model to converge with less epochs
+    # could help reduce training time by using less epochs
+    # Interestingly with a learning rate of 0.01 we see minimal to no changes to the loss function
+    # with each iteration. So clearly we are converging very early but only achieve an f1 score of around
+    # 0.77. After 350 iterations it actually started to imporove. Maybe a local minimum?
     loss_fn = nn.CrossEntropyLoss()
     optimizer = Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
 
@@ -116,7 +123,12 @@ def train(epochs):
     for epoch in range(epochs):
         print(f"Epoch: {epoch}")
         # data is list [(inputs, labels)]
+
+        iterations = []
+        losses = []
+        f1_scores = []
         for i, (images, labels) in enumerate(data):
+            iterations.append(i)    # TODO: Theres more efficient ways to do this. Could also do i + epoch * data size to combine all toghether in single graph
             #print(i)
             #print(f"image: {images}\nlabels: {labels}") # Debug
             # First we require the data to be stored in a tensor
@@ -133,6 +145,7 @@ def train(epochs):
             outputs = model(images)
             #print(f"outputs: {outputs}\nlabels: {labels}")
             loss = loss_fn(outputs, labels)
+            losses.append(loss.cpu().detach().numpy())
             loss.backward()
             optimizer.step()
 
@@ -144,6 +157,7 @@ def train(epochs):
             # model
             accuracy = test_accuracy(model, list(load_test_data()))
             print(f"f1 score at iteration {i}: {accuracy}")
+            f1_scores.append(accuracy)
             if accuracy > best_accuracy:
                 save_model(model)
                 best_accuracy = accuracy
@@ -153,6 +167,22 @@ def train(epochs):
                 # Currently 350560.4375ms (GPU)
                 # 308009.09375ms (CPU)
                 break
+        
+        plt.plot(iterations, losses)
+        plt.xlabel("iteration")
+        plt.ylabel("Loss")
+        plt.yscale("log")
+        plt.title("Loss for epoch " + str(epoch))
+        plt.savefig("loss_score_epoch_" + str(epoch) + ".png")
+        plt.show()
+
+        plt.plot(iterations, f1_scores)
+        plt.xlabel("iteration")
+        plt.ylabel("f1 score")
+        plt.yscale("log")
+        plt.title("F1 score for epoch " + str(epoch))
+        plt.savefig("f1_score_epoch_" + str(epoch) + ".png")
+        plt.show()
     
     # TODO: Load best model and return it
     print(f"Training complete with f1 score: {accuracy}")
