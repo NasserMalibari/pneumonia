@@ -1,16 +1,15 @@
-from dataclasses import dataclass
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
+import numpy as np
 
 from torch.optim import Adam        # TODO: Examine effects of different optim algos
-from torch.autograd import Variable
+from torch.utils.data import DataLoader
 
+import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
 
-from pre_nn import load_data
-from pre2 import load_test_data, load_train_data
+from pneumonia_dataset import load_datasets
 
 
 '''
@@ -50,7 +49,7 @@ class Network(nn.Module):
         # Fully connected layers
         self.fc1 = nn.Linear(12544, 120)    # 5x5 from image dimension
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 2)    # TODO: Is 2 the number of possible output labels?
+        self.fc3 = nn.Linear(84, 2)
 
     # Another interesting exercise could be to try other activation functions besides RELU
     def forward(self, x):
@@ -75,32 +74,33 @@ def load_model():
 
     return model
 
-# TODO: Change to f1 score
 def test_accuracy(model, data):
     outputs = []
-    _, y = zip(*data)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    #device = "cpu"
+    all_labels = []
     with torch.no_grad():
-        for elem in data:
-            images, labels = elem
-            images = Variable(torch.tensor([images]).float().to(device))
-            labels = Variable(torch.tensor([labels]).to("cpu"))
+        for images, labels in data:
             output = model(images)
+            #print(output.shape)
             _, predicted = torch.max(output.data, 1)
-            outputs.append(predicted.to("cpu").numpy())
+            #print(predicted)
+            outputs += (predicted.to("cpu").tolist())
+            all_labels += (labels.to("cpu").squeeze().tolist())
 
+    #print(f"outputs[0]: {sum(outputs)}")
+    #print(f"all_labels[0]: {sum(all_labels)}")
     # Sklearn requires tensors to be on the cpu.
-    return f1_score(outputs, list(y))
+    return f1_score(all_labels, outputs)
 
 def train(epochs):
-    data = list(load_train_data())   # TODO. TODO: Since we're working with labels we may not need x_train, ... etc?
-    data_test = list(load_test_data())
-    model = Network()
+    # If possible we would like to use the GPU
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"model is training using: {device}")
 
-    # Sanity check for data format
-    print(list(data)[50])
-    print(list(data)[50][0].shape)
+    train_data, test_data = load_datasets()
+    train_dataloader = DataLoader(train_data, batch_size=2, shuffle=False)
+    test_dataloader = DataLoader(test_data, batch_size=2, shuffle=False)
+
+    model = Network()
 
     # TODO: Class weights since we have unbalanced dataset?
     # TODO: Higher learning rates could allow our model to converge with less epochs
@@ -113,11 +113,6 @@ def train(epochs):
 
     best_accuracy = 0
 
-    # If possible we would like to use the GPU
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(f"model is training using: {device}")
-    #device = "cpu"
-    # Ensures the model is being trained on correct device. i.e. CPU or CUDA
     model.to(device)
 
     for epoch in range(epochs):
@@ -127,24 +122,15 @@ def train(epochs):
         iterations = []
         losses = []
         f1_scores = []
-        for i, (images, labels) in enumerate(data):
+        for i, (images, labels) in enumerate(train_dataloader):
             iterations.append(i)    # TODO: Theres more efficient ways to do this. Could also do i + epoch * data size to combine all toghether in single graph
-            #print(i)
-            #print(f"image: {images}\nlabels: {labels}") # Debug
-            # First we require the data to be stored in a tensor
-            # .to(device) then ensures the tensor is stored on the correct device
-            # i.e. CPU or CUDA
-            # Variable provides a wrapper to represent a tensor as a node in a graph
-            # We add images to a list of length 1 since conv2d requires more than 2 dimensions
-            # TODO: We can use this to process multiple images in batches i.e. [image, image]
-            images = Variable(torch.tensor([images]).float().to(device))
-            labels = Variable(torch.tensor([labels]).to(device ))
 
             # Make predictions then take a step
             optimizer.zero_grad()
             outputs = model(images)
             #print(f"outputs: {outputs}\nlabels: {labels}")
             loss = loss_fn(outputs, labels)
+            #print(loss)
             losses.append(loss.cpu().detach().numpy())
             loss.backward()
             optimizer.step()
@@ -155,17 +141,19 @@ def train(epochs):
             # Since a step may worsen accuracy our final step may not be the best
             # So we save the model that gave us the best result and use that as our
             # model
-            accuracy = test_accuracy(model, list(load_test_data()))
-            print(f"f1 score at iteration {i}: {accuracy}")
-            f1_scores.append(accuracy)
-            if accuracy > best_accuracy:
-                save_model(model)
-                best_accuracy = accuracy
+            if i % 100 == 99:
+                accuracy = test_accuracy(model, test_dataloader)
+                print(f"f1 score at iteration {i}: {accuracy}")
+                f1_scores.append(accuracy)
+                if accuracy > best_accuracy:
+                    save_model(model)
+                    best_accuracy = accuracy
 
             # Just for debugging purposes. Allows us to evaluate time complexity without doing the whole database
             if i == 500:
                 # Currently 350560.4375ms (GPU)
                 # 308009.09375ms (CPU)
+                # Dataloader with no f1 score calc: 47905.30859375
                 break
         
         plt.plot(iterations, losses)

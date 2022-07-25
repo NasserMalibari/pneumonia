@@ -1,6 +1,7 @@
 import torchvision.transforms as transforms
 from PIL import Image
 import random
+import os
 
 from torch.utils.data import TensorDataset, DataLoader
 from torch.utils.data import Dataset, DataLoader
@@ -40,13 +41,16 @@ random.shuffle(train_paths)
 class pneumonia_dataset(Dataset):
     def __init__(self, image_paths):
         self.image_paths = train_paths
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
     def __len__(self):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
         image_filepath = self.image_paths[idx]
+        transform = transforms.Grayscale()
         img = Image.open(image_filepath)
+        img = transform(img)
         newsize = (127, 127)
         img = img.resize(newsize)
         
@@ -59,7 +63,7 @@ class pneumonia_dataset(Dataset):
         if "PNEUMONIA" in image_filepath:
             label = 1
         
-        return img_tensor, torch.tensor([label])
+        return img_tensor.float().to(self.device), torch.tensor(label).long().to(self.device)
 
 #######################################################
 #                  Create Dataset
