@@ -1,3 +1,4 @@
+from cgi import test
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,6 +12,44 @@ from sklearn.metrics import f1_score
 
 from pneumonia_dataset import load_datasets
 
+import sys
+import time
+import threading
+
+'''
+Was bored waiting for model to train. Adds a spinner to the terminal output
+so I know the model is still training.
+'''
+class Spinner:
+    busy = False
+    delay = 0.1
+
+    @staticmethod
+    def spinning_cursor():
+        while 1: 
+            for cursor in '|/-\\': yield cursor
+
+    def __init__(self, delay=None):
+        self.spinner_generator = self.spinning_cursor()
+        if delay and float(delay): self.delay = delay
+
+    def spinner_task(self):
+        while self.busy:
+            sys.stdout.write(next(self.spinner_generator))
+            sys.stdout.flush()
+            time.sleep(self.delay)
+            sys.stdout.write('\b')
+            sys.stdout.flush()
+
+    def __enter__(self):
+        self.busy = True
+        threading.Thread(target=self.spinner_task).start()
+
+    def __exit__(self, exception, value, tb):
+        self.busy = False
+        time.sleep(self.delay)
+        if exception is not None:
+            return False
 
 '''
 List of sites used for template:
@@ -97,10 +136,13 @@ def train(epochs):
     print(f"model is training using: {device}")
 
     train_data, test_data = load_datasets()
-    train_dataloader = DataLoader(train_data, batch_size=2, shuffle=False)
-    test_dataloader = DataLoader(test_data, batch_size=2, shuffle=False)
+    train_dataloader = DataLoader(train_data, batch_size=32, shuffle=False)
+    test_dataloader = DataLoader(test_data, batch_size=len(test_data), shuffle=False)
+
+    print(len(train_data))
 
     model = Network()
+    print(model)
 
     # TODO: Class weights since we have unbalanced dataset?
     # TODO: Higher learning rates could allow our model to converge with less epochs
@@ -116,14 +158,15 @@ def train(epochs):
     model.to(device)
 
     for epoch in range(epochs):
-        print(f"Epoch: {epoch}")
+        print(f"--------------- Epoch: {epoch} ---------------")
         # data is list [(inputs, labels)]
 
-        iterations = []
+        iterations_loss = []
+        iterations_f1 = []
         losses = []
         f1_scores = []
         for i, (images, labels) in enumerate(train_dataloader):
-            iterations.append(i)    # TODO: Theres more efficient ways to do this. Could also do i + epoch * data size to combine all toghether in single graph
+            iterations_loss.append(i)    # TODO: Theres more efficient ways to do this. Could also do i + epoch * data size to combine all toghether in single graph
 
             # Make predictions then take a step
             optimizer.zero_grad()
@@ -141,22 +184,17 @@ def train(epochs):
             # Since a step may worsen accuracy our final step may not be the best
             # So we save the model that gave us the best result and use that as our
             # model
-            if i % 100 == 99:
+            iterations_f1.append(i)
+            accuracy = 0
+            with Spinner(): # I was bored
                 accuracy = test_accuracy(model, test_dataloader)
-                print(f"f1 score at iteration {i}: {accuracy}")
-                f1_scores.append(accuracy)
-                if accuracy > best_accuracy:
-                    save_model(model)
-                    best_accuracy = accuracy
-
-            # Just for debugging purposes. Allows us to evaluate time complexity without doing the whole database
-            if i == 500:
-                # Currently 350560.4375ms (GPU)
-                # 308009.09375ms (CPU)
-                # Dataloader with no f1 score calc: 47905.30859375
-                break
+            print(f"f1 score at iteration {i+1}: {accuracy}")
+            f1_scores.append(accuracy)
+            if accuracy > best_accuracy:
+                save_model(model)
+                best_accuracy = accuracy
         
-        plt.plot(iterations, losses)
+        plt.plot(iterations_loss, losses)
         plt.xlabel("iteration")
         plt.ylabel("Loss")
         plt.yscale("log")
@@ -164,7 +202,7 @@ def train(epochs):
         plt.savefig("loss_score_epoch_" + str(epoch) + ".png")
         plt.show()
 
-        plt.plot(iterations, f1_scores)
+        plt.plot(iterations_f1, f1_scores)
         plt.xlabel("iteration")
         plt.ylabel("f1 score")
         plt.yscale("log")
@@ -172,8 +210,12 @@ def train(epochs):
         plt.savefig("f1_score_epoch_" + str(epoch) + ".png")
         plt.show()
     
+    with Spinner():
+        accuracy = test_accuracy(model, test_dataloader)
+        print(f"final f1 score: {accuracy}")
+
     # TODO: Load best model and return it
-    print(f"Training complete with f1 score: {accuracy}")
+    # TODO: Create classification report with f1 score
     return model
 
 if __name__ == "__main__":
