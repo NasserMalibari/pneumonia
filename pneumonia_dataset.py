@@ -60,14 +60,21 @@ class pneumonia_dataset(Dataset):
         img_tensor = transform(img)
 
         label = 0
-        if "PNEUMONIA" in image_filepath:
+        if "bacteria" in image_filepath:
             label = 1
+        if "virus" in image_filepath:
+            label = 2
         
         return img_tensor.float().to(self.device), torch.tensor(label).long().to(self.device)
 
 #######################################################
 #                  Create Dataset
 #######################################################
+
+# labels:
+# NORMAL = 0
+# BACTERIA = 1
+# VIRUS = 2
 
 train_dataset = pneumonia_dataset(train_paths)
 
