@@ -13,6 +13,7 @@ from sklearn.metrics import f1_score
 from pneumonia_dataset import load_datasets
 
 import sys
+import math
 import time
 import threading
 
@@ -125,8 +126,8 @@ def test_accuracy(model, data):
             outputs += (predicted.to("cpu").tolist())
             all_labels += (labels.to("cpu").squeeze().tolist())
 
-    print(outputs)
-    print(labels)
+    #print(outputs)
+    #print(labels)
 
     # Sklearn requires tensors to be on the cpu.
     return f1_score(all_labels, outputs, average="macro")
@@ -141,6 +142,8 @@ def train(epochs):
     test_dataloader = DataLoader(test_data, batch_size=len(test_data), shuffle=False)
 
     print(len(train_data))
+    
+    fix, axs = plt.subplots(2, epochs)
 
     model = Network()
     print(model)
@@ -174,8 +177,8 @@ def train(epochs):
             outputs = model(images)
             #print(f"outputs: {outputs}\nlabels: {labels}")
             loss = loss_fn(outputs, labels)
-            #print(loss)
-            losses.append(loss.cpu().detach().numpy())
+            print(loss)
+            losses.append(loss.cpu().detach().tolist())
             loss.backward()
             optimizer.step()
 
@@ -195,21 +198,21 @@ def train(epochs):
                 save_model(model)
                 best_accuracy = accuracy
         
-        plt.plot(iterations_loss, losses)
-        plt.xlabel("iteration")
-        plt.ylabel("Loss")
-        plt.yscale("log")
-        plt.title("Loss for epoch " + str(epoch))
-        plt.savefig("loss_score_epoch_" + str(epoch) + ".png")
-        plt.show()
+        print(losses)
+        print(f1_scores)
 
-        plt.plot(iterations_f1, f1_scores)
-        plt.xlabel("iteration")
-        plt.ylabel("f1 score")
-        plt.yscale("log")
-        plt.title("F1 score for epoch " + str(epoch))
-        plt.savefig("f1_score_epoch_" + str(epoch) + ".png")
-        plt.show()
+        axs[0, epoch].plot(iterations_loss, losses)
+        axs[0, epoch].xlabel("iteration")
+        axs[0, epoch].ylabel("Loss")
+        axs[0, epoch].yscale("log")
+        axs[0, epoch].title("Loss for epoch: " + str(epoch))
+
+        axs[1, epoch].plot(iterations_f1, f1_scores)
+        axs[1, epoch].xlabel("iteration")
+        axs[1, epoch].ylabel("f1 score")
+        axs[1, epoch].yscale("log")
+        axs[1, epoch].title("F1 score for epoch " + str(epoch))
+        axs[1, epoch].show()
     
     with Spinner():
         accuracy = test_accuracy(model, test_dataloader)
@@ -217,6 +220,7 @@ def train(epochs):
 
     # TODO: Load best model and return it
     # TODO: Create classification report with f1 score
+    plt.savefig("f1_score_epoch_.png")
     return model
 
 if __name__ == "__main__":
