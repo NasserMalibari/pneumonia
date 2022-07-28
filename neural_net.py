@@ -129,7 +129,7 @@ def test_accuracy(model, data):
     print(labels)
 
     # Sklearn requires tensors to be on the cpu.
-    return f1_score(all_labels, outputs)
+    return f1_score(all_labels, outputs, average="macro")
 
 def train(epochs):
     # If possible we would like to use the GPU
