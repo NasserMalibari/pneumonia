@@ -58,18 +58,18 @@ List of sites used for template:
     https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
 '''
 
+#TODO: Heres a good source for some other model structure ideas: https://www.analyticsvidhya.com/blog/2020/08/top-4-pre-trained-models-for-image-classification-with-python-code/#:~:text=1.,model%20to%20beat%20even%20today.
 # Our conolution neural network
 class Network(nn.Module):
     def __init__(self):
         print("Initialising model")
         super(Network, self).__init__()
-
-        # TODO: Define layers and perceptrons here
+        '''
         # TODO: Experiment with different network structures as different guides use different.
         # Initial is based on medium.com link above
         # This looks useful:
         # https://stats.stackexchange.com/questions/380996/convolutional-network-how-to-choose-output-channels-number-stride-and-padding/381032#381032
-        
+        '''
         '''
         5x5 square convolution kernel
         nn.Conv2d(in_channels = 2, out_channels = 6 TODO, kernel_size = 5)
@@ -88,7 +88,7 @@ class Network(nn.Module):
         # Fully connected layers
         self.fc1 = nn.Linear(12544, 120)    # 5x5 from image dimension
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 2)
+        self.fc3 = nn.Linear(84, 3)
 
     # Another interesting exercise could be to try other activation functions besides RELU
     def forward(self, x):
@@ -125,8 +125,9 @@ def test_accuracy(model, data):
             outputs += (predicted.to("cpu").tolist())
             all_labels += (labels.to("cpu").squeeze().tolist())
 
-    #print(f"outputs[0]: {sum(outputs)}")
-    #print(f"all_labels[0]: {sum(all_labels)}")
+    print(outputs)
+    print(labels)
+
     # Sklearn requires tensors to be on the cpu.
     return f1_score(all_labels, outputs)
 
@@ -136,7 +137,7 @@ def train(epochs):
     print(f"model is training using: {device}")
 
     train_data, test_data = load_datasets()
-    train_dataloader = DataLoader(train_data, batch_size=32, shuffle=False)
+    train_dataloader = DataLoader(train_data, batch_size=500, shuffle=False)
     test_dataloader = DataLoader(test_data, batch_size=len(test_data), shuffle=False)
 
     print(len(train_data))
@@ -158,7 +159,7 @@ def train(epochs):
     model.to(device)
 
     for epoch in range(epochs):
-        print(f"--------------- Epoch: {epoch} ---------------")
+        print(f"--------------- Epoch: {epoch + 1} ---------------")
         # data is list [(inputs, labels)]
 
         iterations_loss = []
@@ -224,11 +225,18 @@ if __name__ == "__main__":
 
     start.record()
 
+    '''
+    5 epochs and batch size 500
+    -final f1 score: 0.9787454639709695
+    Finished Training
+    2889552.75
+    '''
+
     model = train(1)
 
     end.record()
 
-# Waits for everything to finish running
+    # Waits for everything to finish running
     torch.cuda.synchronize()
 
     print('Finished Training')
