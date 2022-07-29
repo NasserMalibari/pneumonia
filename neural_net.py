@@ -16,6 +16,7 @@ import sys
 import math
 import time
 import threading
+import platform
 
 '''
 Was bored waiting for model to train. Adds a spinner to the terminal output
@@ -135,10 +136,12 @@ def test_accuracy(model, data):
 def train(epochs):
     # If possible we would like to use the GPU
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    if torch.backends.mps.is_available():
+        device = "mps"
     print(f"model is training using: {device}")
 
     train_data, test_data = load_datasets()
-    train_dataloader = DataLoader(train_data, batch_size=500, shuffle=False)
+    train_dataloader = DataLoader(train_data, batch_size=64, shuffle=False)
     test_dataloader = DataLoader(test_data, batch_size=len(test_data), shuffle=False)
 
     print(len(train_data))
@@ -146,7 +149,7 @@ def train(epochs):
     fix, axs = plt.subplots(2, epochs)
 
     model = Network()
-    print(model)
+    print(platform.platform())
 
     # TODO: Class weights since we have unbalanced dataset?
     # TODO: Higher learning rates could allow our model to converge with less epochs
@@ -188,7 +191,6 @@ def train(epochs):
             # Since a step may worsen accuracy our final step may not be the best
             # So we save the model that gave us the best result and use that as our
             # model
-            iterations_f1.append(i)
             accuracy = 0
             with Spinner(): # I was bored
                 accuracy = test_accuracy(model, test_dataloader)
@@ -201,18 +203,17 @@ def train(epochs):
         print(losses)
         print(f1_scores)
 
-        axs[0, epoch].plot(iterations_loss, losses)
-        axs[0, epoch].xlabel("iteration")
-        axs[0, epoch].ylabel("Loss")
-        axs[0, epoch].yscale("log")
-        axs[0, epoch].title("Loss for epoch: " + str(epoch))
+        axs[0, epoch].step(iterations_loss, losses)
+        axs[0, epoch].set_xlabel("iteration")
+        axs[0, epoch].set_ylabel("Loss")
+        axs[0, epoch].set_yscale("log")
+        axs[0, epoch].set_title("Loss for epoch: " + str(epoch))
 
-        axs[1, epoch].plot(iterations_f1, f1_scores)
-        axs[1, epoch].xlabel("iteration")
-        axs[1, epoch].ylabel("f1 score")
-        axs[1, epoch].yscale("log")
-        axs[1, epoch].title("F1 score for epoch " + str(epoch))
-        axs[1, epoch].show()
+        axs[1, epoch].step(iterations_loss, f1_scores)
+        axs[1, epoch].set_xlabel("iteration")
+        axs[1, epoch].set_ylabel("f1 score")
+        #axs[1, epoch].set_yscale("log")
+        axs[1, epoch].set_title("F1 score for epoch " + str(epoch))
     
     with Spinner():
         accuracy = test_accuracy(model, test_dataloader)
@@ -221,13 +222,14 @@ def train(epochs):
     # TODO: Load best model and return it
     # TODO: Create classification report with f1 score
     plt.savefig("f1_score_epoch_.png")
+    plt.show()
     return model
 
 if __name__ == "__main__":
-    start = torch.cuda.Event(enable_timing=True)
-    end = torch.cuda.Event(enable_timing=True)
+    #start = torch.cuda.Event(enable_timing=True)
+    #end = torch.cuda.Event(enable_timing=True)
 
-    start.record()
+    #start.record()
 
     '''
     5 epochs and batch size 500
@@ -236,13 +238,13 @@ if __name__ == "__main__":
     2889552.75
     '''
 
-    model = train(1)
+    model = train(4)
 
-    end.record()
+    #end.record()
 
     # Waits for everything to finish running
     torch.cuda.synchronize()
 
     print('Finished Training')
-    print(start.elapsed_time(end))  # milliseconds
+    #print(start.elapsed_time(end))  # milliseconds
     # Then we test?
