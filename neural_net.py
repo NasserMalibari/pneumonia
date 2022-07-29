@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from torch.optim import Adam        # TODO: Examine effects of different optim algos
+from torch.optim import Adam, AdamW        # TODO: Examine effects of different optim algos
 from torch.utils.data import DataLoader
 
 import matplotlib.pyplot as plt
@@ -101,7 +101,7 @@ class Network(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
-        
+
         return x
 
 def save_model(model):
@@ -141,12 +141,12 @@ def train(epochs):
     print(f"model is training using: {device}")
 
     train_data, test_data = load_datasets()
-    train_dataloader = DataLoader(train_data, batch_size=64, shuffle=False)
+    train_dataloader = DataLoader(train_data, batch_size=100, shuffle=False)
     test_dataloader = DataLoader(test_data, batch_size=len(test_data), shuffle=False)
 
     print(len(train_data))
     
-    fix, axs = plt.subplots(2, epochs)
+    fix, axs = plt.subplots(2, epochs, figsize=(30, 30))
 
     model = Network()
     print(platform.platform())
@@ -158,7 +158,7 @@ def train(epochs):
     # with each iteration. So clearly we are converging very early but only achieve an f1 score of around
     # 0.77. After 350 iterations it actually started to imporove. Maybe a local minimum?
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
+    optimizer = AdamW(model.parameters(), lr=0.001, weight_decay=0.0001)
 
     best_accuracy = 0
 
@@ -221,6 +221,7 @@ def train(epochs):
 
     # TODO: Load best model and return it
     # TODO: Create classification report with f1 score
+    print(f"Best f1_score so far is {best_accuracy}")
     plt.savefig("f1_score_epoch_.png")
     plt.show()
     return model
