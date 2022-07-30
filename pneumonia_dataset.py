@@ -1,11 +1,13 @@
 import torchvision.transforms as transforms
-from PIL import Image
+from PIL import Image, ImageOps
 import random
 import os
 
 from torch.utils.data import TensorDataset, DataLoader
 from torch.utils.data import Dataset, DataLoader
 import torch
+from tqdm import tqdm
+
 
 base_dir = 'chest_xray/'
 
@@ -75,6 +77,11 @@ class pneumonia_dataset(Dataset):
 # NORMAL = 0
 # BACTERIA = 1
 # VIRUS = 2
+for i, img in tqdm(enumerate(train_neg)):
+    im = Image.open(img)
+    im_mirror = ImageOps.mirror(im)
+    im_mirror.save(f'chest_xray/train/NORMAL/mirror_{i}.jpeg')
+
 
 train_dataset = pneumonia_dataset(train_paths)
 
