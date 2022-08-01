@@ -22,33 +22,33 @@ Run with working directory in '/models/dtree'.
 
 First preprocess dataset to generate .npy files
 
-    python dtree_pre.py
+    python3 dtree_pre.py
 
 Then train each model by running:
 
-    python dtree_{model_name}.py
+    python3 dtree_{model_name}.py
 
 This will generate the models which are .joblib files, to then be loaded and analysed using
 
-    python dtree_analysis.py {model_name}
+    python3 dtree_analysis.py {model_name}
 
 
 ### Logistic Regression
 
 Run with working directory in '/models/logistic_regression'.
 
-    python logistic_regression.py
+    python3 logistic_regression.py
 
 ### Support Vector Machine
 
 Preprocess the data by running and generate the .csv files
 
-    python models/svm/pre.py
+    python3 models/svm/pre.py
 
 To train all models:
 
-    python models/svm/svm.py
+    python3 models/svm/svm.py
 
 To see the confusion matrix results:
 
-    python models/svm/results.py
+    python3 models/svm/results.py
