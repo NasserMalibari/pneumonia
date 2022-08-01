@@ -7,7 +7,7 @@ This project contains the code for the 2022 T2 COMP9417 Group Project for team S
 These instructions will explain how to setup and run our different models to replicate our results.
 
 ### Installing
-To download the dataset needed for this project visit [kaggle](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia), create an account and download the data zip file. Unzip the compressed file and extract chest_xray into the base directory of this project so that you have the following file structure:
+To download the dataset needed for this project visit this [kaggle project](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia), create an account and download the data zip file. Unzip the compressed file and extract chest_xray into the base directory of this project so that you have the following file structure:
 
     pycache
     models
