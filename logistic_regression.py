@@ -35,12 +35,8 @@ print('---------------------------------------------------')
 
 train_full = train_pos + train_neg
 
-# resizing images
-
 # size of smallest image()
 image_size = 127
-
-# there are a few packages for image reading, here im using cv2
 
 widths_train = []
 heights_train = []
@@ -48,6 +44,7 @@ heights_train = []
 train_data = []
 train_labels = []
 
+#pre-process training images
 count = 0
 for train_img in train_full:
     img = cv2.imread(train_img, cv2.IMREAD_GRAYSCALE)
@@ -78,6 +75,7 @@ test_full = test_neg + test_pos
 widths = []
 heights = []
 
+#pre-process test images
 count = 0
 for test_img in test_full:
     img = cv2.imread(test_img, cv2.IMREAD_GRAYSCALE)
@@ -107,6 +105,7 @@ train_labels = np.array(train_labels)
 test_data = np.array(test_data)
 test_labels = np.array(test_labels)
 
+#performs logistic regression using model thats passed in. Produces a confusion matrix as well as classification report to display f1 scores
 def performLogisticRegression(logisticRegr):
   logisticRegr.fit(train_data , train_labels)
   y_pred_train = logisticRegr.predict(train_data)
@@ -114,6 +113,7 @@ def performLogisticRegression(logisticRegr):
 
   cm = confusion_matrix(train_labels, y_pred_train)
 
+  #plot confusion matrix on a heatmap
   fig, ax = plt.subplots(figsize=(8, 8))
   ax.imshow(cm)
   ax.grid(False)
