@@ -22,17 +22,24 @@ test_pos = test_dir + 'PNEUMONIA'
 val_neg = val_dir + 'NORMAL'
 val_pos = val_dir + 'PNEUMONIA'
 
+
+# train_pos: list of pathnames to positive images
 train_pos = [train_pos+'/'+i  for i in os.listdir(train_pos) ]
+
+# train_neg: list of pathnames to negative images
 train_neg = [train_neg + '/' + i for i in os.listdir(train_neg) ]
 
-
+# test_pos: list of pathnames to positive images
 test_pos = [test_pos + '/' + i for i in os.listdir(test_pos) ]
+
+# test_neg: list of pathnames to negative images
 test_neg = [test_neg + '/' + i for i in os.listdir(test_neg)]
 
 val_pos = [val_pos + '/' + i for i in os.listdir(val_pos)]
 val_neg = [val_neg + '/' + i for i in os.listdir(val_neg)]
 
 train_paths = train_pos + train_neg
+
 random.seed(42) # Answer to life the universe and everything
 random.shuffle(train_paths)
 
@@ -50,17 +57,21 @@ class pneumonia_dataset(Dataset):
 
     def __getitem__(self, idx):
         image_filepath = self.image_paths[idx]
+        
+        # grayscale and resize all images
         transform = transforms.Grayscale()
         img = Image.open(image_filepath)
         img = transform(img)
         newsize = (127, 127)
         img = img.resize(newsize)
         
+        # change image object to tensor for training
         transform = transforms.Compose([
             transforms.PILToTensor()
         ])
         img_tensor = transform(img)
 
+        # assign label
         label = 0
         if "bacteria" in image_filepath:
             label = 1
@@ -77,15 +88,32 @@ class pneumonia_dataset(Dataset):
 # NORMAL = 0
 # BACTERIA = 1
 # VIRUS = 2
-for i, img in tqdm(enumerate(train_neg)):
-    im = Image.open(img)
-    im_mirror = ImageOps.mirror(im)
-    im_mirror.save(f'chest_xray/train/NORMAL/mirror_{i}.jpeg')
+
+directories = os.listdir('chest_xray/train/NORMAL')
+mirror_exists = False
+for directory in directories:
+    if "mirror" in directory:
+        mirror_exists = True
+        break
+
+# if mirroring hasnt occured:
+# mirror all images to get more examples
+# generating synthetic data
+if mirror_exists == False:
+    for i, img in tqdm(enumerate(train_neg)):
+        im = Image.open(img)
+        im_mirror = ImageOps.mirror(im)
+        im_mirror.save(f'chest_xray/train/NORMAL/mirror_{i}.jpeg')
+
+    # update train_paths list to include new mirrored images
+    train_neg = [train_neg + '/' + i for i in os.listdir(train_neg) ]
+    train_paths = train_pos + train_neg
 
 
+# CREATE train dataset
 train_dataset = pneumonia_dataset(train_paths)
 
-# Do as above but for test set:
+# Create test dataset:
 test_paths = test_pos + test_neg
 random.shuffle(test_paths)
 test_dataset = pneumonia_dataset(test_paths)
