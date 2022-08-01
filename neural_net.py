@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from torch.optim import Adam, AdamW        # TODO: Examine effects of different optim algos
+from torch.optim import Adam, AdamW, NAdam        # TODO: Examine effects of different optim algos
 from torch.utils.data import DataLoader
 
 import matplotlib.pyplot as plt
@@ -116,6 +116,15 @@ def load_model():
     return model
 
 def test_accuracy(model, data):
+    '''
+    predicted_classes = torch.argmax(y_pred, dim=1) == 0
+    target_classes = self.get_vector(y_batch)
+    target_true += torch.sum(target_classes == 0).float()
+    predicted_true += torch.sum(predicted_classes).float()
+    correct_true += torch.sum(
+    predicted_classes == target_classes * predicted_classes == 0).float()
+    '''
+
     outputs = []
     all_labels = []
     with torch.no_grad():
@@ -141,12 +150,12 @@ def train(epochs):
     print(f"model is training using: {device}")
 
     train_data, test_data = load_datasets()
-    train_dataloader = DataLoader(train_data, batch_size=100, shuffle=False)
+    train_dataloader = DataLoader(train_data, batch_size=32, shuffle=False)
     test_dataloader = DataLoader(test_data, batch_size=len(test_data), shuffle=False)
 
     print(len(train_data))
     
-    fix, axs = plt.subplots(2, epochs, figsize=(30, 30))
+    fix, axs = plt.subplots(2, epochs, figsize=(40, 40))
 
     model = Network()
     print(platform.platform())
@@ -158,7 +167,7 @@ def train(epochs):
     # with each iteration. So clearly we are converging very early but only achieve an f1 score of around
     # 0.77. After 350 iterations it actually started to imporove. Maybe a local minimum?
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = AdamW(model.parameters(), lr=0.001, weight_decay=0.0001)
+    optimizer = NAdam(model.parameters(), lr=0.001, weight_decay=0.0001)
 
     best_accuracy = 0
 
@@ -192,10 +201,12 @@ def train(epochs):
             # So we save the model that gave us the best result and use that as our
             # model
             accuracy = 0
-            with Spinner(): # I was bored
-                accuracy = test_accuracy(model, test_dataloader)
-            print(f"f1 score at iteration {i+1}: {accuracy}")
-            f1_scores.append(accuracy)
+            if epoch >= epochs - 3 or i % 20 == 0:
+                with Spinner(): # I was bored
+                    accuracy = test_accuracy(model, test_dataloader)
+                print(f"f1 score at iteration {i+1}: {accuracy}")
+                f1_scores.append(accuracy)
+                iterations_f1.append(i)
             if accuracy > best_accuracy:
                 save_model(model)
                 best_accuracy = accuracy
@@ -209,11 +220,13 @@ def train(epochs):
         axs[0, epoch].set_yscale("log")
         axs[0, epoch].set_title("Loss for epoch: " + str(epoch))
 
-        axs[1, epoch].step(iterations_loss, f1_scores)
+        axs[1, epoch].step(iterations_f1, f1_scores)
         axs[1, epoch].set_xlabel("iteration")
         axs[1, epoch].set_ylabel("f1 score")
         #axs[1, epoch].set_yscale("log")
         axs[1, epoch].set_title("F1 score for epoch " + str(epoch))
+
+        plt.savefig("f1_epoch_" + str(epoch) + "_.png")
     
     with Spinner():
         accuracy = test_accuracy(model, test_dataloader)
@@ -221,8 +234,8 @@ def train(epochs):
 
     # TODO: Load best model and return it
     # TODO: Create classification report with f1 score
-    print(f"Best f1_score so far is {best_accuracy}")
-    plt.savefig("f1_score_epoch_.png")
+    print(f"Best f1_score so far is {best_accuracy}, with mirror, 45 batch")
+    plt.savefig("f1_score_epoch_final_ihope.png")
     plt.show()
     return model
 
@@ -239,7 +252,7 @@ if __name__ == "__main__":
     2889552.75
     '''
 
-    model = train(4)
+    model = train(7)
 
     #end.record()
 
