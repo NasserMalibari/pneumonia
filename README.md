@@ -43,9 +43,9 @@ This will generate the models which are .joblib files, to then be loaded and ana
 
 ### Logistic Regression
 
-Run with working directory in '/models/logistic_regression'.
+Run with
 
-    python3 logistic_regression.py
+    python3 models/logistic_regression/logistic_regression.py
 
 ### Support Vector Machine
 
