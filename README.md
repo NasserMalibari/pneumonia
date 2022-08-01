@@ -18,6 +18,21 @@ Instructions for running each of the models
 
 ### Decision Tree
 
+Run with working directory in '/models/dtree'.
+
+First preprocess dataset to generate .npy files
+
+    python dtree_pre.py
+
+Then train each model by running:
+
+    python dtree_{model_name}.py
+
+This will generate the models which are .joblib files, to then be loaded and analysed using
+
+    python dtree_analysis.py {model_name}
+
+
 ### Logistic Regression
 
     python .\models\logistic_regression\logistic_regression.py
