@@ -6,7 +6,7 @@ import cv2
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.linear_model import LogisticRegression
 
-base_dir = '../../chest_xray/'
+base_dir = 'chest_xray/'
 
 train_dir = base_dir + 'train/'
 test_dir = base_dir + 'test/'
