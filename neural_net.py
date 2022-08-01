@@ -20,6 +20,7 @@ import threading
 Was bored waiting for model to train. Adds a spinner to the terminal output
 so I know the model is still training.
 '''
+
 class Spinner:
     busy = False
     delay = 0.1
@@ -151,7 +152,7 @@ def train(epochs):
     # with each iteration. So clearly we are converging very early but only achieve an f1 score of around
     # 0.77. After 350 iterations it actually started to imporove. Maybe a local minimum?
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
+    optimizer = Adam(model.parameters(), lr=0.01, weight_decay=0.01)
 
     best_accuracy = 0
 
@@ -213,24 +214,25 @@ def train(epochs):
     with Spinner():
         accuracy = test_accuracy(model, test_dataloader)
         print(f"final f1 score: {accuracy}")
+        print(f"best f1 score: {best_accuracy}")
 
     # TODO: Load best model and return it
     # TODO: Create classification report with f1 score
     return model
 
 if __name__ == "__main__":
-    start = torch.cuda.Event(enable_timing=True)
-    end = torch.cuda.Event(enable_timing=True)
+    # start = torch.cuda.Event(enable_timing=True)
+    # end = torch.cuda.Event(enable_timing=True)
 
-    start.record()
+    # start.record()
 
     model = train(1)
 
-    end.record()
-
+    # end.record()
+    
 # Waits for everything to finish running
-    torch.cuda.synchronize()
+    # torch.cuda.synchronize()
 
-    print('Finished Training')
-    print(start.elapsed_time(end))  # milliseconds
-    # Then we test?
+    # print('Finished Training')
+    # print(start.elapsed_time(end))  # milliseconds
+    # # Then we test?
