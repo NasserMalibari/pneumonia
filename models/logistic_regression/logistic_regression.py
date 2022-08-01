@@ -6,10 +6,7 @@ import cv2
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.linear_model import LogisticRegression
 
-#Select the directory our dataset is stored in
-os.chdir(r"D:\UNI\6th year\T2\COMP9417\Assignments\Group Assignment\chest_xray")
-
-base_dir = 'chest_xray/'
+base_dir = '../../chest_xray/'
 
 train_dir = base_dir + 'train/'
 test_dir = base_dir + 'test/'
