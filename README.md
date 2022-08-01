@@ -30,7 +30,7 @@ Train the model by running:
 
     python3 models/neural_net/neural_net.py
 
-Note this will take longer if running the first time to generate mirrored images, see 4.3
+Note this will take longer if running the first time to generate mirrored images, see 4.3 in the report
 
 ### Decision Tree
 
