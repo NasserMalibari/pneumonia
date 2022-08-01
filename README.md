@@ -8,7 +8,7 @@ These instructions will explain how to setup and run our different models to rep
 
 ### Installing
 
-  pip install {dependancy}
+    pip install {dependancy}
 
 ## Running the models
 
@@ -20,6 +20,6 @@ Instructions for running each of the models
 
 ### Logistic Regression
 
-  python .\logistic_regression.py
+    python .\logistic_regression.py
 
 ### Support Vector Machine
