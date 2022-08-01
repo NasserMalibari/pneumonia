@@ -20,6 +20,6 @@ Instructions for running each of the models
 
 ### Logistic Regression
 
-    python .\logistic_regression.py
+    python .\models\logistic_regression\logistic_regression.py
 
 ### Support Vector Machine
