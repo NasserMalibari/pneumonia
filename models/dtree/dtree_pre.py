@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import cv2
 from sklearn.utils import shuffle
 
-base_dir = 'chest_xray/'
+base_dir = '../../chest_xray/'
 
 train_dir = base_dir + 'train/'
 test_dir = base_dir + 'test/'
