@@ -24,6 +24,14 @@ Instructions for running each of the models
 
 ### Neural Net
 
+Run with working directory as the root directory.
+
+Train the model by running:
+
+    python3 models/neural_net/neural_net.py
+
+Note this will take longer if running the first time to generate mirrored images, see 4.3
+
 ### Decision Tree
 
 Run with working directory in '/models/dtree'.
