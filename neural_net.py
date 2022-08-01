@@ -1,10 +1,8 @@
-from cgi import test
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 
-from torch.optim import Adam, AdamW, NAdam        # TODO: Examine effects of different optim algos
+from torch.optim import Adam, AdamW, NAdam
 from torch.utils.data import DataLoader
 
 import matplotlib.pyplot as plt
@@ -13,10 +11,8 @@ from sklearn.metrics import f1_score
 from pneumonia_dataset import load_datasets
 
 import sys
-import math
 import time
 import threading
-import platform
 
 '''
 Was bored waiting for model to train. Adds a spinner to the terminal output
@@ -53,50 +49,39 @@ class Spinner:
         if exception is not None:
             return False
 
-'''
-List of sites used for template:
-    https://medium.com/bitgrit-data-science-publication/building-an-image-classification-model-with-pytorch-from-scratch-f10452073212
-    https://docs.microsoft.com/en-us/windows/ai/windows-ml/tutorials/pytorch-train-model
-    https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
-'''
-
-#TODO: Heres a good source for some other model structure ideas: https://www.analyticsvidhya.com/blog/2020/08/top-4-pre-trained-models-for-image-classification-with-python-code/#:~:text=1.,model%20to%20beat%20even%20today.
 # Our conolution neural network
 class Network(nn.Module):
     def __init__(self):
         print("Initialising model")
         super(Network, self).__init__()
-        '''
-        # TODO: Experiment with different network structures as different guides use different.
-        # Initial is based on medium.com link above
-        # This looks useful:
-        # https://stats.stackexchange.com/questions/380996/convolutional-network-how-to-choose-output-channels-number-stride-and-padding/381032#381032
-        '''
+
         '''
         5x5 square convolution kernel
-        nn.Conv2d(in_channels = 2, out_channels = 6 TODO, kernel_size = 5)
+        nn.Conv2d(in_channels = 2, out_channels = 6, kernel_size = 5)
         - in_channels
             - 1 since our image is greyscale
         - out_channels
-            - TODO: To be checked. Use stackexchange link above
+            - From tutorial
         - kernel_size
-            - TODO: To be checked. Use stackexchange link above
+            - From tutorial
         '''
-        self.conv1 = nn.Conv2d(1, 6, 5) # Optional: stride, padding
+        self.conv1 = nn.Conv2d(1, 6, 5)
         # Pool over a (2, 2) window. Image goes to dimensionality passed in
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
 
         # Fully connected layers
-        self.fc1 = nn.Linear(12544, 120)    # 5x5 from image dimension
+        self.fc1 = nn.Linear(12544, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 3)
 
-    # Another interesting exercise could be to try other activation functions besides RELU
     def forward(self, x):
-        #print(f"x is: {x}")
+        # Perform convolutions and pooling
+        # Reduces the dimensionality of the image(s)
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
+
+        # Since nn.Linear requires a column vector we flatten the tensor
         x = x.view(-1, 12544)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
@@ -104,10 +89,16 @@ class Network(nn.Module):
 
         return x
 
+'''
+Takes a CNN and saves its parameters so it can be loaded later
+'''
 def save_model(model):
     path = "./saved_model.pth"
     torch.save(model.state_dict(), path)
 
+'''
+Loads the parameters of a model
+'''
 def load_model():
     path = "./saved_model.pth"
     model = Network()
@@ -115,67 +106,53 @@ def load_model():
 
     return model
 
-def test_accuracy(model, data):
-    '''
-    predicted_classes = torch.argmax(y_pred, dim=1) == 0
-    target_classes = self.get_vector(y_batch)
-    target_true += torch.sum(target_classes == 0).float()
-    predicted_true += torch.sum(predicted_classes).float()
-    correct_true += torch.sum(
-    predicted_classes == target_classes * predicted_classes == 0).float()
-    '''
-
+'''
+Computes the predictions for some images in data and calculates the f1 score
+'''
+def calc_f1(model, data):
     outputs = []
     all_labels = []
     with torch.no_grad():
+        # Make predictions
         for images, labels in data:
             output = model(images)
-            #print(output.shape)
             _, predicted = torch.max(output.data, 1)
-            #print(predicted)
             outputs += (predicted.to("cpu").tolist())
             all_labels += (labels.to("cpu").squeeze().tolist())
-
-    #print(outputs)
-    #print(labels)
 
     # Sklearn requires tensors to be on the cpu.
     return f1_score(all_labels, outputs, average="macro")
 
+'''
+Creates an instance of the model and then trains it.
+'''
 def train(epochs):
-    # If possible we would like to use the GPU
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    if torch.backends.mps.is_available():
-        device = "mps"
+    # If possible we would like to use the GPU or MPS
+    device = torch.device("cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda:0") # GPU acceleration
+    elif torch.backends.is_available():
+        device =torch.device("mps")     # For Apple M1 chips
     print(f"model is training using: {device}")
 
+    # Train and test dataloaders are iterables that return a tuple of the form ([images], [labels]) each iteration.
     train_data, test_data = load_datasets()
     train_dataloader = DataLoader(train_data, batch_size=32, shuffle=False)
     test_dataloader = DataLoader(test_data, batch_size=len(test_data), shuffle=False)
-
-    print(len(train_data))
     
-    fix, axs = plt.subplots(2, epochs, figsize=(40, 40))
-
+    # Some initialisations
+    fix, axs = plt.subplots(2, epochs, figsize=(80, 80))
     model = Network()
-    print(platform.platform())
-
-    # TODO: Class weights since we have unbalanced dataset?
-    # TODO: Higher learning rates could allow our model to converge with less epochs
-    # could help reduce training time by using less epochs
-    # Interestingly with a learning rate of 0.01 we see minimal to no changes to the loss function
-    # with each iteration. So clearly we are converging very early but only achieve an f1 score of around
-    # 0.77. After 350 iterations it actually started to imporove. Maybe a local minimum?
     loss_fn = nn.CrossEntropyLoss()
     optimizer = NAdam(model.parameters(), lr=0.001, weight_decay=0.0001)
 
     best_accuracy = 0
 
+    # Models and tensors have to be sent to the GPU if we wish to utilise hardware acceleration
     model.to(device)
 
     for epoch in range(epochs):
         print(f"--------------- Epoch: {epoch + 1} ---------------")
-        # data is list [(inputs, labels)]
 
         iterations_loss = []
         iterations_f1 = []
@@ -187,33 +164,29 @@ def train(epochs):
             # Make predictions then take a step
             optimizer.zero_grad()
             outputs = model(images)
-            #print(f"outputs: {outputs}\nlabels: {labels}")
             loss = loss_fn(outputs, labels)
             print(loss)
             losses.append(loss.cpu().detach().tolist())
             loss.backward()
             optimizer.step()
 
-            #if i % 10 == 0:
-                #print(f"Iteration {i} has accuracy: {test_accuracy(model, data)}")
         
             # Since a step may worsen accuracy our final step may not be the best
             # So we save the model that gave us the best result and use that as our
             # model
-            accuracy = 0
-            if epoch >= epochs - 3 or i % 20 == 0:
-                with Spinner(): # I was bored
-                    accuracy = test_accuracy(model, test_dataloader)
-                print(f"f1 score at iteration {i+1}: {accuracy}")
-                f1_scores.append(accuracy)
-                iterations_f1.append(i)
+            with Spinner(): # This takes a while so create a spinner so its clear its still running.
+                accuracy = calc_f1(model, test_dataloader)
+            # If this is the best accuracy so far save the weights.
             if accuracy > best_accuracy:
                 save_model(model)
                 best_accuracy = accuracy
-        
-        print(losses)
-        print(f1_scores)
 
+            f1_scores.append(accuracy)
+            iterations_f1.append(i)
+            
+            print(f"Iteration {i}:\nLoss: {loss}\nf1 score: {accuracy}\n\n")
+
+        # Graph the results of the current epoch
         axs[0, epoch].step(iterations_loss, losses)
         axs[0, epoch].set_xlabel("iteration")
         axs[0, epoch].set_ylabel("Loss")
@@ -223,42 +196,17 @@ def train(epochs):
         axs[1, epoch].step(iterations_f1, f1_scores)
         axs[1, epoch].set_xlabel("iteration")
         axs[1, epoch].set_ylabel("f1 score")
-        #axs[1, epoch].set_yscale("log")
         axs[1, epoch].set_title("F1 score for epoch " + str(epoch))
 
+        # Since training takes so long we save a graph each epoch just in case it crashes.
         plt.savefig("f1_epoch_" + str(epoch) + "_.png")
-    
-    with Spinner():
-        accuracy = test_accuracy(model, test_dataloader)
-        print(f"final f1 score: {accuracy}")
 
-    # TODO: Load best model and return it
-    # TODO: Create classification report with f1 score
-    print(f"Best f1_score so far is {best_accuracy}, with mirror, 45 batch")
-    plt.savefig("f1_score_epoch_final_ihope.png")
+    print(f"Finished training with f1_score: {best_accuracy}")
+    plt.savefig("f1_score.png")
     plt.show()
-    return model
+
+    # We now load our best model and return it
+    return load_model()
 
 if __name__ == "__main__":
-    #start = torch.cuda.Event(enable_timing=True)
-    #end = torch.cuda.Event(enable_timing=True)
-
-    #start.record()
-
-    '''
-    5 epochs and batch size 500
-    -final f1 score: 0.9787454639709695
-    Finished Training
-    2889552.75
-    '''
-
-    model = train(7)
-
-    #end.record()
-
-    # Waits for everything to finish running
-    torch.cuda.synchronize()
-
-    print('Finished Training')
-    #print(start.elapsed_time(end))  # milliseconds
-    # Then we test?
+    model = train(10)
