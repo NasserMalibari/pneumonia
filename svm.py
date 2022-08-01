@@ -8,12 +8,12 @@ from sklearn import svm
 from sklearn import metrics
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
-"""
+
 # Linear SVM
 parameterGrid = {'C':[1, 10, 100, 1000]}
 svc = svm.LinearSVC(max_iter = 10000)
 model = GridSearchCV(svc, parameterGrid)
-"""
+
 x_test = pd.read_csv('test_data.csv').to_numpy()
 y_test = pd.read_csv('test_labels.csv').to_numpy().ravel()
 x_train = pd.read_csv('train_data.csv').to_numpy()
@@ -22,7 +22,7 @@ y_train = pd.read_csv('train_labels.csv').to_numpy().ravel()
 sc = StandardScaler().fit(x_train)
 x_train_std = sc.transform(x_train)
 x_test_std = sc.transform(x_test)
-"""
+
 # Fit the model
 model.fit(x_train_std, y_train)
 train_score = model.score(x_train_std, y_train)
@@ -141,7 +141,7 @@ cr_nonlinear_2 = metrics.classification_report(y_test, y_pred3)
 acc = metrics.accuracy_score(y_test, y_pred3)
 print(cm_nonlinear_2)
 print(cr_nonlinear_2)
-"""
+
 print('-------- Non Linear Kernel Chosen Parameters --------')
 
 # Non-linear kernel SVM
