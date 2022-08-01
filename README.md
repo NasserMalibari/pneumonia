@@ -47,7 +47,13 @@ Then train each model by running:
 This will generate the models which are .joblib files, to then be loaded and analysed using
 
     python3 dtree_analysis.py {model_name}
-
+    
+List of model_name:
+Base decision tree: model_name=base
+Pre-pruned decision tree: model_name=pre-prune
+Post_pruned decision tree: model_name=post-prune
+Random forest: model_name=rf
+Gradient boosted tree: model_name=gb
 
 ### Logistic Regression
 
