@@ -38,3 +38,15 @@ This will generate the models which are .joblib files, to then be loaded and ana
     python .\models\logistic_regression\logistic_regression.py
 
 ### Support Vector Machine
+
+Preprocess the data by running and generate the .csv files
+
+    python models/svm/pre.py
+
+To train all models:
+
+    python models/svm/svm.py
+
+To see the confusion matrix results:
+
+    python models/svm/results.py
